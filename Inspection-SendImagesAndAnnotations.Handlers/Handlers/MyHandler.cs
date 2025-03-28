@@ -1,6 +1,6 @@
-using InspectionTemplate.Messages.Dtos;
+using InspectionSendImagesAndAnnotations.Messages.Dtos;
 
-namespace InspectionTemplate.Handlers
+namespace InspectionSendImagesAndAnnotations.Handlers
 {
     public class MyHandler : IHandleMessages<MessageRequest>
     {
