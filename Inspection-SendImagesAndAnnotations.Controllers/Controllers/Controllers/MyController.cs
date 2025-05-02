@@ -5,20 +5,18 @@ using InspectionSendImagesAndAnnotations.Controllers.DtoFactory;
 namespace InspectionSendImagesAndAnnotations.Controllers
 {
     [ApiController]
-    [Route("Api/Controllers")]
+    [Route("Api/SendAnnotationsAndImages")]
     public class MyController : BaseController
     {
         public MyController(IMessageSession messageSession, IDtoFactory dtoFactory)
             : base(messageSession, dtoFactory) { }
 
-        [HttpPost("Message")]
-        public async Task<IActionResult> AddAccount([FromBody] MessageRequest dto)
+        [HttpPost("SendAnnotations")]
+        public async Task<IActionResult> SendAnnotations([FromBody] InspectionRequest dto)
         {
-            var loginDto = (MessageRequest)_dtoFactory.UseDto("messagedto", dto);
-
             try
             {
-                var response = await _messageSession.Request<MessageResponse>(loginDto);
+                var response = await _messageSession.Request<InspectionResponse>(dto);
                 return Ok(response);
             }
             catch (Exception ex)

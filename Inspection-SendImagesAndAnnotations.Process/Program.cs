@@ -6,6 +6,7 @@ using InspectionSendImagesAndAnnotations.Controllers.DtoFactory;
 using InspectionSendImagesAndAnnotations.Process;
 using InspectionSendImagesAndAnnotations.Channel.Services;
 using InspectionSendImagesAndAnnotations.Messages.Dtos;
+using InspectionSendImagesAndAnnotations.Channel;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,29 +15,23 @@ builder.Services.AddSingleton<IDtoFactory, DtoFactory>();
 
 var appConfig = AppConfiguration.Instance;
 
-if (builder.Environment.IsDevelopment())
-{
-    builder.WebHost.ConfigureKestrel(options =>
-    {
-        options.ListenAnyIP(5003);
-        options.ListenAnyIP(5004, listenOptions =>
-        {
-            listenOptions.UseHttps();
-        });
-    });
-}
-else
-{
-    builder.WebHost.ConfigureKestrel(options =>
-    {
-        options.ListenAnyIP(5003);
-    });
-}
-
 builder.Services.AddScoped<MongoConnect>(provider =>
 {
     var connectionString = appConfig.GetSetting("ConnectionStrings:DefaultConnection");
     return new MongoConnect(connectionString);
+});
+builder.Services.AddScoped<InspectionService>(provider =>
+{
+    var connectionString = appConfig.GetSetting("ConnectionStrings:DefaultConnection");
+    return new InspectionService(connectionString);
+});
+
+builder.Services.AddScoped<PythonAPI>(provider =>
+{
+    var pythonApi = appConfig.GetSetting("PythonAPI");
+    var username = appConfig.GetSetting("Username");
+    var password = appConfig.GetSetting("Password");
+    return new PythonAPI(pythonApi, username, password);
 });
 
 builder.Services.AddScoped<MyHandler>();
@@ -75,11 +70,32 @@ var serialization = endpointConfiguration.UseSerialization<NewtonsoftJsonSeriali
 serialization.Settings(settings);
 
 var transport = endpointConfiguration.UseTransport<LearningTransport>();
-transport.StorageDirectory("/app/.learningtransport");
 var persistence = endpointConfiguration.UsePersistence<LearningPersistence>();
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.ListenAnyIP(5013);
+        options.ListenAnyIP(5014, listenOptions =>
+        {
+            listenOptions.UseHttps();
+        });
+        transport.StorageDirectory("/app/.learningtransport");
+    });
+}
+else
+{
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.ListenAnyIP(5013);
+    });
+    transport.StorageDirectory("/home/ubuntu/storage");
+
+}
+
 var routing = transport.Routing();
-routing.RouteToEndpoint(typeof(MessageRequest), "NServiceBusHandlers");
+routing.RouteToEndpoint(typeof(InspectionRequest), "NServiceBusHandlers");
 
 var scanner = endpointConfiguration.AssemblyScanner().ScanFileSystemAssemblies = true;
 
@@ -98,7 +114,6 @@ if (app.Environment.IsDevelopment())
 }
 app.UseCors("AllowAll");
 app.UseMiddleware<LoggingMiddleware>();
-app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -14,13 +14,6 @@ public class DtoFactory : IDtoFactory
         {
         
             case "messagedto":
-                if (args.Length < 2 || !(args[0] is string))
-                    throw new ArgumentException("Invalid arguments for messageRequest.");
-
-                return new MessageRequest
-                {
-                    Message = (string)args[0]
-                };
 
             default:
                 throw new ArgumentException($"Invalid DTO type: {dtoType}");
